@@ -57,7 +57,6 @@ public class Program {
                 return;
             }
             String qw = "";
-            System.out.println(query);
             for(String el : query.split("&")) {
                 var parts = el.split("=");
                 if(parts.length != 2) {
@@ -69,7 +68,6 @@ public class Program {
                 qw = URLDecoder.decode(parts[1], "UTF-8");
             }
 
-            System.out.println(qw);
             if(qw == null || qw.isEmpty()) {
                 t.sendResponseHeaders(400, -1);
                 return;
