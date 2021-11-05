@@ -1,0 +1,16 @@
+
+setup / building:
+1. must have java, java-devel
+2. `make libs` to download dependencies
+3. `make build-jar` to build jar
+
+native:
+1. `make run-jar` to run jar (or `java -jar lingua-api.jar`)
+
+docker / podman:
+
+1. create images:
+    `make podman-image`
+    `make docker-image`
+2. run images:
+    [podman/docker] run -it --net=host -e LINGUA_API_PORT=80 --name lingua-api lingua-api  

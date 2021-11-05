@@ -1,0 +1,3 @@
+Manifest-Version: 1.0 
+Class-Path: lib/lingua.jar lib/json.jar
+Main-Class: Program
