@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
 // import java.util.Map;
 // import java.util.LinkedHashMap;
 import java.net.URLDecoder;
@@ -38,36 +39,11 @@ public class Program {
         private final LanguageDetector detector;
 
         public LinguaHandler() {
-            System.out.println("Wait. Preloading models...");
+            System.out.println("Wait. Loading models...");
             detector = LanguageDetectorBuilder.fromAllLanguages().withPreloadedLanguageModels().build();
         }
 
-        @Override
-        public void handle(HttpExchange t) throws IOException {
-
-            if(!t.getRequestMethod().equals("GET")) {
-                t.sendResponseHeaders(404, -1);
-                return;
-            }
-
-            var uri = t.getRequestURI();
-            var query = uri.getRawQuery();
-            if(query == null) {
-                t.sendResponseHeaders(400, -1);
-                return;
-            }
-            String qw = "";
-            for(String el : query.split("&")) {
-                var parts = el.split("=");
-                if(parts.length != 2) {
-                    continue;
-                }
-                if(!parts[0].equals("q")) {
-                    continue;
-                }
-                qw = URLDecoder.decode(parts[1], "UTF-8");
-            }
-
+        private void makePredictionAndAbort(HttpExchange t, String qw) throws Exception {
             if(qw == null || qw.isEmpty()) {
                 t.sendResponseHeaders(400, -1);
                 return;
@@ -91,6 +67,64 @@ public class Program {
             OutputStream os = t.getResponseBody();
             os.write(res.getBytes());
             os.close();
+        }
+
+        private void handleGet(HttpExchange t) throws Exception {
+            var uri = t.getRequestURI();
+            var query = uri.getRawQuery();
+            if(query == null) {
+                t.sendResponseHeaders(400, -1);
+                return;
+            }
+            String qw = "";
+            for(String el : query.split("&")) {
+                var parts = el.split("=");
+                if(parts.length != 2) {
+                    continue;
+                }
+                if(!parts[0].equals("q")) {
+                    continue;
+                }
+                qw = URLDecoder.decode(parts[1], "UTF-8");
+            }
+
+            makePredictionAndAbort(t, qw);
+        }
+
+        private void handlePost(HttpExchange t) throws Exception {
+            var i = t.getRequestBody();
+            var body = i.readAllBytes();
+            var str = new String(body);
+            i.close();
+            var j = new JSONObject(str);
+            var q = (String)j.get("q");
+            makePredictionAndAbort(t, q);
+        }
+
+        @Override
+        public void handle(HttpExchange t) throws IOException {
+            try {
+                var method = t.getRequestMethod();
+                switch(method) {
+                case "GET":
+                    handleGet(t);
+                    break;
+                case "POST":
+                    handlePost(t);
+                    break;
+                default:
+                    t.sendResponseHeaders(404, -1);
+                    break;
+                }
+            } catch(URISyntaxException | JSONException ex) {
+                System.out.println(ex);
+                t.sendResponseHeaders(400, -1);
+                return;
+            } catch(Exception ex) {
+                System.out.println(ex);
+                t.sendResponseHeaders(500, -1);
+                return;
+            }
         }
     }
 
